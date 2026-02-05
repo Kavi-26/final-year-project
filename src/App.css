@@ -1,0 +1,11 @@
+/* App.css - Component specific styles can go here or modules */
+.public-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  flex: 1;
+  padding: 2rem 0;
+}
