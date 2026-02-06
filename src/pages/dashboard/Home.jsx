@@ -3,12 +3,27 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import VehicleList from './VehicleList';
 import './Home.css';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function DashboardHome() {
     const { currentUser, userRole } = useAuth();
+
+    // If regular user, show only their vehicle list
+    if (userRole === 'user') {
+        return (
+            <div className="dashboard-home">
+                <header className="page-header">
+                    <h1>User Dashboard</h1>
+                    <p>Welcome back, {currentUser?.displayName || currentUser?.email}</p>
+                </header>
+                <VehicleList />
+            </div>
+        );
+    }
+
     const [stats, setStats] = useState({
         totalTests: 0,
         passCount: 0,
@@ -40,13 +55,21 @@ export default function DashboardHome() {
                 const fuelCount = {};
                 const tests = [];
 
+                const getDate = (dateField) => {
+                    if (!dateField) return new Date(0);
+                    if (typeof dateField.toDate === 'function') return dateField.toDate();
+                    return new Date(dateField);
+                };
+
                 snapshot.forEach(doc => {
                     const data = doc.data();
+                    const testDate = getDate(data.testDate || data.createdAt);
+
                     total++;
                     if (data.testResult === 'Pass') pass++;
                     if (data.testResult === 'Fail') fail++;
 
-                    if (data.testDate && data.testDate.toDate() >= startOfDay) {
+                    if (testDate >= startOfDay) {
                         today++;
                     }
 
@@ -56,7 +79,7 @@ export default function DashboardHome() {
                     typeCount[vType] = (typeCount[vType] || 0) + 1;
                     fuelCount[fType] = (fuelCount[fType] || 0) + 1;
 
-                    tests.push({ id: doc.id, ...data });
+                    tests.push({ id: doc.id, ...data, parsedDate: testDate });
                 });
 
                 // Format Chart Data
@@ -67,11 +90,7 @@ export default function DashboardHome() {
                     { name: 'Fail', value: fail }
                 ];
 
-                tests.sort((a, b) => {
-                    const dateA = a.testDate ? a.testDate.toDate() : new Date(0);
-                    const dateB = b.testDate ? b.testDate.toDate() : new Date(0);
-                    return dateB - dateA;
-                });
+                tests.sort((a, b) => b.parsedDate - a.parsedDate);
 
                 setStats({ totalTests: total, passCount: pass, failCount: fail, todayTests: today });
                 setChartData({ vehicleType: vTypeData, fuelType: fuelData, passFail: passFailData });
@@ -211,7 +230,7 @@ export default function DashboardHome() {
                             ) : (
                                 recentTests.map(test => (
                                     <tr key={test.id}>
-                                        <td>{test.testDate ? test.testDate.toDate().toLocaleDateString() : 'N/A'}</td>
+                                        <td>{test.parsedDate ? test.parsedDate.toLocaleDateString() : 'N/A'}</td>
                                         <td className="uppercase">{test.vehicleNumber}</td>
                                         <td>{test.ownerName}</td>
                                         <td className="capitalize">{test.vehicleType}</td>

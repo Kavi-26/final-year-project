@@ -22,7 +22,7 @@ export default function DashboardLayout() {
         <div className="dashboard-layout">
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <h2>ANBU Admin</h2>
+                    <h2>ANBU</h2>
                 </div>
                 <nav className="sidebar-nav">
                     <Link to="/dashboard" className={`nav-item ${isActive('/dashboard')}`}>
