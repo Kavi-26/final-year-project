@@ -133,14 +133,7 @@ export default function Login() {
                             </div>
                         </div>
 
-                        <div className="form-extras">
-                            <label className="checkbox-container">
-                                <input type="checkbox" />
-                                <span className="checkmark"></span>
-                                Remember for 30 days
-                            </label>
-                            <a href="#" className="forgot-link">Forgot password?</a>
-                        </div>
+
 
                         <button disabled={loading} type="submit" className="btn btn-primary btn-block btn-login-submit">
                             {loading ? 'Authenticating...' : (isAdminLogin ? 'Access Dashboard ➜' : 'Sign In ➜')}

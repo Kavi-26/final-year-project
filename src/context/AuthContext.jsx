@@ -82,12 +82,14 @@ export function AuthProvider({ children }) {
         return result;
     };
 
-    const signup = async (email, password, name) => {
+    const signup = async (email, password, name, vehicleNumber, mobileNumber) => {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         // Create user document
         await setDoc(doc(db, "users", result.user.uid), {
             name,
             email,
+            vehicleNumber: vehicleNumber || '',
+            mobileNumber: mobileNumber || '',
             role: "user",
             isActive: true,
             useraction: true,
@@ -118,7 +120,7 @@ export function AuthProvider({ children }) {
     };
 
     // Admin creating a user account (Same logic as staff creation but for 'users' role)
-    const createUserByAdmin = async (email, password, name) => {
+    const createUserByAdmin = async (email, password, name, vehicleNumber, mobileNumber) => {
         const secondaryAuth = getSecondaryAuth();
         const result = await createUserWithEmailAndPassword(secondaryAuth, email, password);
 
@@ -126,6 +128,8 @@ export function AuthProvider({ children }) {
         await setDoc(doc(db, "users", result.user.uid), {
             name,
             email,
+            vehicleNumber: vehicleNumber || '',
+            mobileNumber: mobileNumber || '',
             role: "user",
             isActive: true,
             useraction: true,

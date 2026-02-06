@@ -224,31 +224,7 @@
     outline: none;
 }
 
-/* Form Extras */
-.form-extras {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.9rem;
-}
 
-.checkbox-container {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    color: #64748b;
-}
-
-.checkbox-container input {
-    accent-color: var(--primary-color);
-}
-
-.forgot-link {
-    color: var(--primary-color);
-    font-weight: 600;
-    text-decoration: none;
-}
 
 .btn-login-submit {
     margin-top: 1rem;
