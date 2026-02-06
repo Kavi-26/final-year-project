@@ -51,6 +51,9 @@ export default function DashboardLayout() {
                             My Vehicles
                         </Link>
                     )}
+                    <Link to="/dashboard/profile" className={`nav-item ${isActive('/dashboard/profile')}`}>
+                        My Profile
+                    </Link>
                 </nav>
                 <div className="sidebar-footer">
                     <button onClick={handleLogout} className="btn-logout">Logout</button>

@@ -17,6 +17,7 @@ import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Certificate from './pages/Certificate';
+import Profile from './pages/dashboard/Profile';
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="vehicles" element={<VehicleList />} />
             <Route path="add-vehicle" element={<AddVehicle />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
 
           {/* Fallback */}
