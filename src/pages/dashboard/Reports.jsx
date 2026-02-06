@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, query } from 'firebase/firestore';
 import './Reports.css';
 
 export default function Reports() {
@@ -14,6 +14,7 @@ export default function Reports() {
         vehicleType: 'all',
         fuelType: 'all'
     });
+    const [activePeriod, setActivePeriod] = useState('all');
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -64,29 +65,121 @@ export default function Reports() {
             res = res.filter(t => t.fuelType === filters.fuelType);
         }
         if (filters.startDate) {
-            res = res.filter(t => t.date >= new Date(filters.startDate));
+            // Compare removing time
+            const startStr = filters.startDate;
+            res = res.filter(t => {
+                const d = t.date.toISOString().split('T')[0];
+                return d >= startStr;
+            });
         }
         if (filters.endDate) {
-            const end = new Date(filters.endDate);
-            end.setHours(23, 59, 59);
-            res = res.filter(t => t.date <= end);
+            const endStr = filters.endDate;
+            res = res.filter(t => {
+                const d = t.date.toISOString().split('T')[0];
+                return d <= endStr;
+            });
         }
         setFiltered(res);
     }, [filters, tests]);
 
-    const handleDownload = () => {
-        // Simple CSV export
-        const headers = ["Test ID", "Date", "Vehicle No", "Owner", "Role", "Result"];
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + headers.join(",") + "\n"
-            + filtered.map(row =>
-                `${row.id},${row.date.toLocaleDateString()},${row.vehicleNumber},${row.ownerName},${row.testResult}`
-            ).join("\n");
+    const handlePeriodChange = (period) => {
+        setActivePeriod(period);
+        const now = new Date();
+        const formatDate = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
 
-        const encodedUri = encodeURI(csvContent);
+        if (period === 'all') {
+            setFilters(prev => ({ ...prev, startDate: '', endDate: '' }));
+        } else if (period === 'today') {
+            const todayStr = formatDate(now);
+            setFilters(prev => ({ ...prev, startDate: todayStr, endDate: todayStr }));
+        } else if (period === 'month') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            setFilters(prev => ({ ...prev, startDate: formatDate(startOfMonth), endDate: formatDate(now) }));
+        } else if (period === 'year') {
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            setFilters(prev => ({ ...prev, startDate: formatDate(startOfYear), endDate: formatDate(now) }));
+        }
+    };
+
+    const handleDownload = () => {
+        if (filtered.length === 0) {
+            alert("No data to download");
+            return;
+        }
+
+        // 1. Collect all unique keys
+        const allKeys = new Set();
+        filtered.forEach(item => {
+            Object.keys(item).forEach(key => allKeys.add(key));
+        });
+
+        // 2. Define Headers (Prioritize important ones)
+        let headers = Array.from(allKeys);
+        headers.sort();
+        const priorityFields = [
+            'id', 'date', 'testDate', 'expiryDate', 'validityDate',
+            'vehicleNumber', 'ownerName', 'mobileNumber',
+            'testResult', 'vehicleType', 'fuelType'
+        ];
+
+        headers = [
+            ...priorityFields.filter(field => headers.includes(field)),
+            ...headers.filter(field => !priorityFields.includes(field))
+        ];
+
+        // 3. Helper: Format Dates to YYYY-MM-DD (Excel friendly)
+        const formatDate = (dateVal) => {
+            if (!dateVal) return '';
+            const d = new Date(dateVal);
+            if (isNaN(d.getTime())) return '';
+            return d.toISOString().split('T')[0]; // YYYY-MM-DD
+        };
+
+        // 4. Helper: Escape CSV values
+        const processValue = (key, value) => {
+            if (value === null || value === undefined) return '';
+
+            // Handle Dates
+            if (value instanceof Date || (typeof value === 'object' && value.seconds)) {
+                const dateObj = value.seconds ? new Date(value.seconds * 1000) : value;
+                return formatDate(dateObj);
+            }
+
+            let strVal = String(value);
+
+            // Handle Mobile Number & Vehicle Number to prevent Scientific Notation or leading zero loss
+            // Excel Hack: ="value" forces text mode
+            if (['mobileNumber', 'vehicleNumber', 'phone'].includes(key)) {
+                return `="${strVal}"`;
+            }
+
+            // Standard CSV escaping
+            if (strVal.includes(',') || strVal.includes('"') || strVal.includes('\n')) {
+                strVal = `"${strVal.replace(/"/g, '""')}"`;
+            }
+
+            return strVal;
+        };
+
+        // 5. Generate CSV Rows
+        const csvRows = [];
+        csvRows.push(headers.join(",")); // Header row
+
+        filtered.forEach(row => {
+            const values = headers.map(header => processValue(header, row[header]));
+            csvRows.push(values.join(","));
+        });
+
+        // 6. Download
+        const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join("\n"));
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "pollution_reports.csv");
+        link.setAttribute("href", csvContent);
+        link.setAttribute("download", `pollution_reports_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -95,7 +188,10 @@ export default function Reports() {
     return (
         <div className="reports-container">
             <div className="reports-header">
-                <h1>Test Reports</h1>
+                <div className="header-left">
+                    <h1>Test Reports</h1>
+                    <p className="subtitle">View and download vehicle test records</p>
+                </div>
                 <div className="download-actions">
                     <button className="btn-download" onClick={handleDownload}>
                         ⬇ Download CSV
@@ -104,6 +200,34 @@ export default function Reports() {
             </div>
 
             <div className="filters-card">
+                {/* Time Period Quick Filters */}
+                <div className="period-tabs">
+                    <button
+                        className={`period-tab ${activePeriod === 'all' ? 'active' : ''}`}
+                        onClick={() => handlePeriodChange('all')}
+                    >
+                        All Time
+                    </button>
+                    <button
+                        className={`period-tab ${activePeriod === 'today' ? 'active' : ''}`}
+                        onClick={() => handlePeriodChange('today')}
+                    >
+                        Today
+                    </button>
+                    <button
+                        className={`period-tab ${activePeriod === 'month' ? 'active' : ''}`}
+                        onClick={() => handlePeriodChange('month')}
+                    >
+                        This Month
+                    </button>
+                    <button
+                        className={`period-tab ${activePeriod === 'year' ? 'active' : ''}`}
+                        onClick={() => handlePeriodChange('year')}
+                    >
+                        This Year
+                    </button>
+                </div>
+
                 <div className="filters-grid">
                     <div className="filter-group">
                         <label>Status</label>
@@ -152,7 +276,10 @@ export default function Reports() {
                             type="date"
                             className="filter-input"
                             value={filters.startDate}
-                            onChange={e => setFilters({ ...filters, startDate: e.target.value })}
+                            onChange={e => {
+                                setFilters({ ...filters, startDate: e.target.value });
+                                setActivePeriod('custom');
+                            }}
                         />
                     </div>
                     <div className="filter-group">
@@ -161,13 +288,19 @@ export default function Reports() {
                             type="date"
                             className="filter-input"
                             value={filters.endDate}
-                            onChange={e => setFilters({ ...filters, endDate: e.target.value })}
+                            onChange={e => {
+                                setFilters({ ...filters, endDate: e.target.value });
+                                setActivePeriod('custom');
+                            }}
                         />
                     </div>
                 </div>
             </div>
 
             <div className="reports-table-container">
+                <div className="table-header-info">
+                    <span>Showing <strong>{filtered.length}</strong> records</span>
+                </div>
                 <div className="table-responsive">
                     <table className="data-table">
                         <thead>
