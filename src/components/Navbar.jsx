@@ -46,9 +46,6 @@ export default function Navbar() {
                     <Link to="/contact" className={`nav-link ${isActive('/contact')}`}>Contact</Link>
                     <Link to="/verification" className={`nav-link ${isActive('/verification')}`}>Verify</Link>
 
-                    <div className="nav-actions">
-                        <Link to="/login" className="btn-login">Login</Link>
-                    </div>
                 </div>
 
                 <button

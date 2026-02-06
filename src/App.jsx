@@ -31,10 +31,9 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/verify" element={<Verification />} />
             <Route path="/certificate/:id" element={<Certificate />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Route>
-
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
           {/* Protected Admin/Staff/User Routes */}
           <Route path="/dashboard" element={
