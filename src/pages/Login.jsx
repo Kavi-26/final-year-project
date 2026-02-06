@@ -71,54 +71,88 @@ export default function Login() {
 
     return (
         <div className={`login-container ${isAdminLogin ? 'admin-mode' : ''}`}>
-            <div className="login-card">
-                <div
-                    className="login-header"
-                    onMouseDown={handleTouchStart}
-                    onMouseUp={handleTouchEnd}
-                    onMouseLeave={handleTouchEnd}
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                    <h2>ANBU Emission Test</h2>
-                    <h3>{displayTitle}</h3>
+
+            <div className="login-wrapper">
+                {/* Left Side - Visual/Branding */}
+                <div className="login-visual-side">
+                    <div className="visual-content">
+                        <div className="visual-icon-large">🍃</div>
+                        <h2>Clean Air, <br />Greener Future.</h2>
+                        <p>Join our mission to create a sustainable environment through efficient emission testing.</p>
+
+                        <div className="visual-badges">
+                            <span className="v-badge">🚀 Fast Process</span>
+                            <span className="v-badge">🛡️ Secure Data</span>
+                        </div>
+                    </div>
                 </div>
 
-                {error && <div className="error-message">{error}</div>}
+                {/* Right Side - Form */}
+                <div className="login-form-side">
+                    <div className="login-card-header"
+                        onMouseDown={handleTouchStart}
+                        onMouseUp={handleTouchEnd}
+                        onMouseLeave={handleTouchEnd}
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                    >
+                        <h3>{displayTitle}</h3>
+                        <p className="subtitle">Welcome back! Please enter your details.</p>
+                    </div>
 
-                <form onSubmit={handleSubmit} className="login-form">
-                    <div className="form-group">
-                        <label>Email Address</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            placeholder={displayPlaceholder}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            placeholder="••••••••"
-                        />
-                    </div>
-                    <button disabled={loading} type="submit" className="btn btn-primary btn-block">
-                        {loading ? 'Logging in...' : (isAdminLogin ? 'Access Dashboard' : 'Log In')}
-                    </button>
-                </form>
+                    {error && <div className="error-message">
+                        <span className="err-icon">⚠️</span> {error}
+                    </div>}
 
-                {/* Show Register link ONLY for Users (not Staff or Admin) */}
-                {!isAdminLogin && !isStaffView && (
-                    <div className="w-100 text-center mt-3" style={{ marginTop: '1rem', textAlign: 'center' }}>
-                        Need an account? <Link to="/register" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>Register</Link>
-                    </div>
-                )}
+                    <form onSubmit={handleSubmit} className="modern-form">
+                        <div className="input-group">
+                            <label>Email Address</label>
+                            <div className="input-wrapper">
+                                <span className="input-icon">✉️</span>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    placeholder={displayPlaceholder}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <label>Password</label>
+                            <div className="input-wrapper">
+                                <span className="input-icon">🔒</span>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-extras">
+                            <label className="checkbox-container">
+                                <input type="checkbox" />
+                                <span className="checkmark"></span>
+                                Remember for 30 days
+                            </label>
+                            <a href="#" className="forgot-link">Forgot password?</a>
+                        </div>
+
+                        <button disabled={loading} type="submit" className="btn btn-primary btn-block btn-login-submit">
+                            {loading ? 'Authenticating...' : (isAdminLogin ? 'Access Dashboard ➜' : 'Sign In ➜')}
+                        </button>
+                    </form>
+
+                    {!isAdminLogin && !isStaffView && (
+                        <div className="login-footer">
+                            Don't have an account? <Link to="/register" className="register-link">Create free account</Link>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
