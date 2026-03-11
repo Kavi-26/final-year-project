@@ -22,20 +22,22 @@ export default function DashboardLayout() {
         <div className="dashboard-layout">
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <h2>ANBU</h2>
+                    <h2>ANBU EMISSION TEST CENTRE</h2>
                 </div>
                 <nav className="sidebar-nav">
                     <Link to="/dashboard" className={`nav-item ${isActive('/dashboard')}`}>
                         Dashboard
                     </Link>
                     {(userRole === 'admin' || userRole === 'staff') && (
-                        <Link to="/dashboard/new-test" className={`nav-item ${isActive('/dashboard/new-test')}`}>
-                            New Test
-                        </Link>
+                        <>
+                            <Link to="/dashboard/new-test" className={`nav-item ${isActive('/dashboard/new-test')}`}>
+                                New Test
+                            </Link>
+                            <Link to="/dashboard/reports" className={`nav-item ${isActive('/dashboard/reports')}`}>
+                                Reports
+                            </Link>
+                        </>
                     )}
-                    <Link to="/dashboard/reports" className={`nav-item ${isActive('/dashboard/reports')}`}>
-                        Reports
-                    </Link>
                     {userRole === 'admin' && (
                         <>
                             <Link to="/dashboard/staff" className={`nav-item ${isActive('/dashboard/staff')}`}>

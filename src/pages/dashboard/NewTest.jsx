@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { db } from '../../firebase';
-import { collection, addDoc, serverTimestamp, Timestamp, setDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, setDoc, doc, arrayUnion, query, where, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import Tesseract from 'tesseract.js';
 import './NewTest.css';
@@ -35,7 +35,60 @@ export default function NewTest() {
     const [rawText, setRawText] = useState('');
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        // Enforce uppercase for vehicle number immediately
+        const newValue = name === 'vehicleNumber' ? value.toUpperCase() : value;
+
+        setFormData(prev => ({ ...prev, [name]: newValue }));
+
+        // Auto-fetch details when vehicle number is entered (Debounce or length check)
+        if (name === 'vehicleNumber' && newValue.replace(/[^a-zA-Z0-9]/g, '').length >= 6) {
+            fetchVehicleDetails(newValue);
+        }
+    };
+
+    // Fetch previous test details for vehicle
+    const fetchVehicleDetails = async (vehicleNo) => {
+        if (!vehicleNo) return;
+        // Try both formatted and unformatted to be safe, or just relying on what user typed
+        // Since we force Uppercase now, let's just use it.
+
+        try {
+            // Check 'pollution_tests' collection first for most recent test
+            // We use a simple query. If index exists, orderBy createdAt would be better.
+            // For now, getting recent ones manually if needed, or just specific match.
+            const q = query(
+                collection(db, 'pollution_tests'),
+                where('vehicleNumber', '==', vehicleNo),
+                limit(5) // Get a few to find the latest if possible
+            );
+
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                // Find the latest one based on createdAt or testDate
+                const docs = snapshot.docs.map(d => d.data());
+                // Sort by date descending if dates exist
+                docs.sort((a, b) => {
+                    const dateA = a.createAt ? a.createdAt.toDate() : (a.testDate ? new Date(a.testDate) : new Date(0));
+                    const dateB = b.createAt ? b.createdAt.toDate() : (b.testDate ? new Date(b.testDate) : new Date(0));
+                    return dateB - dateA;
+                });
+
+                const latest = docs[0];
+
+                setFormData(prev => ({
+                    ...prev,
+                    vehicleType: latest.vehicleType || prev.vehicleType,
+                    fuelType: latest.fuelType || prev.fuelType,
+                    ownerName: latest.ownerName || prev.ownerName,
+                    mobileNumber: latest.mobileNumber || prev.mobileNumber,
+                    emissionNorms: latest.emissionNorms || prev.emissionNorms
+                }));
+            }
+        } catch (err) {
+            console.log("Auto-fetch error (ignorable):", err);
+        }
     };
 
     // OCR Handler
@@ -60,8 +113,29 @@ export default function NewTest() {
             const cleanText = text.replace(/\|/g, '');
 
             // Basic Extraction Logic
-            const vehicleNumMatch = cleanText.match(/[A-Z]{2}[ -]?[0-9]{2}[ -]?[A-Z]{1,2}[ -]?[0-9]{4}/i);
-            if (vehicleNumMatch) extractedData.vehicleNumber = vehicleNumMatch[0].toUpperCase();
+            const vehicleRegex = /[A-Z]{2}[ -]?[0-9]{2}[ -]?[A-Z]{1,2}[ -]?[0-9]{4}/i;
+
+            // 1. Try to find explicit label first (more accurate)
+            const labelMatch = text.match(/(?:Reg|Registration|Vehicle)\s*(?:No|Number)?\s*[:.\-]?\s*([A-Z0-9 -]+)/i);
+            let vehicleNumMatch = null;
+
+            if (labelMatch) {
+                // clean up the captured group
+                const possibleNum = labelMatch[1].trim();
+                vehicleNumMatch = possibleNum.match(vehicleRegex);
+            }
+
+            // 2. If no label match, search whole text
+            if (!vehicleNumMatch) {
+                vehicleNumMatch = cleanText.match(vehicleRegex);
+            }
+
+            if (vehicleNumMatch) {
+                // improved cleanup: remove spaces and hyphens to standardize
+                // also fix common OCR errors: O -> 0, I -> 1 if in digit positions? 
+                // actually, let's just trust the regex for structure, but uppercase it.
+                extractedData.vehicleNumber = vehicleNumMatch[0].toUpperCase();
+            }
 
             if (/petrol/i.test(text)) extractedData.fuelType = 'petrol';
             else if (/diesel/i.test(text)) extractedData.fuelType = 'diesel';
@@ -124,6 +198,12 @@ export default function NewTest() {
             if (smokeMatch) extractedData.smokeDensity = smokeMatch[1];
 
             setFormData(prev => ({ ...prev, ...extractedData }));
+
+            // Trigger fetch if vehicle number found
+            if (extractedData.vehicleNumber) {
+                fetchVehicleDetails(extractedData.vehicleNumber);
+            }
+
             alert(`OCR Complete! Found ${Object.keys(extractedData).length} fields.`);
 
         } catch (err) {
