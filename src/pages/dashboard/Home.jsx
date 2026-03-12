@@ -31,39 +31,43 @@ export default function DashboardHome() {
     const [recentTests, setRecentTests] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // If regular user, show personalized dashboard
-    if (userRole === 'user') {
-        return (
-            <div className="dashboard-home">
-                <header className="page-header">
-                    <h1>My Pollution Dashboard</h1>
-                    <p>Welcome back, {currentUser?.displayName || currentUser?.email}</p>
-                </header>
-
-                <UserStatsView currentUser={currentUser} allTests={allTests} />
-                
-                <div className="section-card" style={{ marginTop: '2rem' }}>
-                    <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Recent Test Records</h2>
-                        <Link to="/dashboard/reports" className="btn-link">View All</Link>
-                    </div>
-                    <UserRecentTests currentUser={currentUser} allTests={allTests} />
-                </div>
-            </div>
-        );
-    }
-
-    // 1. Fetch All Data Once
+    // 1. Fetch Data Based on Role
     useEffect(() => {
         const fetchData = async () => {
             try {
                 let testsRef = collection(db, 'pollution_tests');
                 let snapshot;
 
-                // Optimization: If user, only fetch their tests by mobile or email if possible
-                // For now, fetching all and filtering in memory is fine for small scale, 
-                // but let's try to be smart if user doc has name
-                snapshot = await getDocs(testsRef);
+                if (userRole === 'user') {
+                    // Optimized: Fetch only this user's tests
+                    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+                    if (userSnap.exists()) {
+                        const uData = userSnap.data();
+                        const qName = query(testsRef, where('ownerName', '==', uData.name || ''));
+                        const qVehicle = query(testsRef, where('vehicleNumber', '==', uData.vehicleNumber || ''));
+                        
+                        const [snap1, snap2] = await Promise.all([getDocs(qName), getDocs(qVehicle)]);
+                        
+                        // Merge and de-duplicate by ID
+                        const mergedDocs = [...snap1.docs, ...snap2.docs];
+                        const uniqueIds = new Set();
+                        const uniqueDocs = [];
+                        
+                        mergedDocs.forEach(doc => {
+                            if (!uniqueIds.has(doc.id)) {
+                                uniqueIds.add(doc.id);
+                                uniqueDocs.push(doc);
+                            }
+                        });
+                        
+                        snapshot = { docs: uniqueDocs };
+                    } else {
+                        snapshot = { docs: [] };
+                    }
+                } else {
+                    // Staff/Admin: Fetch all
+                    snapshot = await getDocs(testsRef);
+                }
 
                 const getDate = (dateField) => {
                     if (!dateField) return new Date(0);
@@ -72,7 +76,7 @@ export default function DashboardHome() {
                 };
 
                 const data = snapshot.docs.map(doc => {
-                    const docData = doc.data();
+                    const docData = typeof doc.data === 'function' ? doc.data() : doc.data;
                     return {
                         id: doc.id,
                         ...docData,
@@ -90,7 +94,59 @@ export default function DashboardHome() {
             }
         };
         fetchData();
-    }, []);
+    }, [currentUser, userRole]);
+
+    // If regular user, show personalized dashboard
+    if (userRole === 'user') {
+        return (
+            <div className="dashboard-home">
+                <header className="page-header">
+                    <h1>My Pollution Dashboard</h1>
+                    <p>Welcome back, {currentUser?.displayName || currentUser?.email}</p>
+                </header>
+
+                <UserStatsView allTests={allTests} />
+                
+                {allTests.length > 0 && (
+                    <div className="section-card vehicle-info-summary" style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+                            <div style={{ background: '#3b82f6', color: 'white', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.2rem' }}>🚗</div>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>Registered Vehicle Details</h2>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Information from your latest test record</p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Vehicle No</label>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }} className="uppercase">{allTests[0].vehicleNumber}</span>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Vehicle Type</label>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }} className="capitalize">{allTests[0].vehicleType}</span>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Fuel Type</label>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }} className="capitalize">{allTests[0].fuelType}</span>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Emission Norms</label>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>{allTests[0].emissionNorms || 'BS-IV'}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                <div className="section-card" style={{ marginTop: '2rem' }}>
+                    <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Recent Test Records</h2>
+                        <Link to="/dashboard/reports" className="btn-link">View All</Link>
+                    </div>
+                    <UserRecentTests allTests={allTests} />
+                </div>
+            </div>
+        );
+    }
 
     // 2. Filter and Calculate Stats when Period or Data changes
     useEffect(() => {
@@ -386,29 +442,12 @@ export default function DashboardHome() {
     );
 }
 
-function UserStatsView({ currentUser, allTests }) {
-    const [userTests, setUserTests] = useState([]);
-
-    useEffect(() => {
-        const filterMyTests = async () => {
-            const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-            if (userSnap.exists()) {
-                const uData = userSnap.data();
-                const myDocs = allTests.filter(t => 
-                    t.ownerName?.toLowerCase() === uData.name?.toLowerCase() ||
-                    t.vehicleNumber?.toUpperCase() === uData.vehicleNumber?.toUpperCase()
-                );
-                setUserTests(myDocs);
-            }
-        };
-        filterMyTests();
-    }, [allTests, currentUser]);
-
+function UserStatsView({ allTests }) {
     const stats = {
-        total: userTests.length,
-        pass: userTests.filter(t => t.testResult === 'Pass').length,
-        fail: userTests.filter(t => t.testResult === 'Fail').length,
-        latest: userTests[0]?.testResult || 'N/A'
+        total: allTests.length,
+        pass: allTests.filter(t => t.testResult === 'Pass').length,
+        fail: allTests.filter(t => t.testResult === 'Fail').length,
+        latest: allTests[0]?.testResult || 'N/A'
     };
 
     return (
@@ -437,23 +476,8 @@ function UserStatsView({ currentUser, allTests }) {
     );
 }
 
-function UserRecentTests({ currentUser, allTests }) {
-    const [myRecent, setMyRecent] = useState([]);
-
-    useEffect(() => {
-        const filterMyRecent = async () => {
-            const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-            if (userSnap.exists()) {
-                const uData = userSnap.data();
-                const filtered = allTests.filter(t => 
-                    t.ownerName?.toLowerCase() === uData.name?.toLowerCase() ||
-                    t.vehicleNumber?.toUpperCase() === uData.vehicleNumber?.toUpperCase()
-                ).slice(0, 5);
-                setMyRecent(filtered);
-            }
-        };
-        filterMyRecent();
-    }, [allTests, currentUser]);
+function UserRecentTests({ allTests }) {
+    const myRecent = allTests.slice(0, 5);
 
     return (
         <div className="table-responsive">

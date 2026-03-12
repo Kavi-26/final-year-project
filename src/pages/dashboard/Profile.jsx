@@ -71,7 +71,7 @@ export default function Profile() {
                 <div className="profile-details-grid">
                     <div className="detail-item">
                         <label>Full Name</label>
-                        <div className="value">{userData?.name || 'N/A'}</div>
+                        <div className="value name-highlight">{userData?.name || 'N/A'}</div>
                     </div>
 
                     <div className="detail-item">
@@ -81,13 +81,17 @@ export default function Profile() {
 
                     <div className="detail-item">
                         <label>Account Role</label>
-                        <div className="value capitalize">{userRole}</div>
+                        <div className="value">
+                            <span className={`role-badge ${userRole}`}>
+                                {userRole}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="detail-item">
                         <label>Member Since</label>
                         <div className="value">
-                            {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'N/A'}
+                            {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
                         </div>
                     </div>
 
@@ -95,10 +99,10 @@ export default function Profile() {
                         <>
                             <div className="detail-item">
                                 <label>Vehicle Number</label>
-                                <div className="value uppercase">{userData?.vehicleNumber || 'Not Set'}</div>
+                                <div className="value uppercase highlight-blue">{userData?.vehicleNumber || 'Not Registered'}</div>
                             </div>
                             <div className="detail-item">
-                                <label>Mobile Number</label>
+                                <label>Contact Number</label>
                                 <div className="value">{userData?.mobileNumber || 'Not Set'}</div>
                             </div>
                         </>
@@ -106,16 +110,21 @@ export default function Profile() {
 
                     <div className="detail-item">
                         <label>User ID</label>
-                        <div className="value code">{currentUser?.uid}</div>
+                        <div className="value code-text">{currentUser?.uid}</div>
                     </div>
 
                     <div className="detail-item">
-                        <label>Status</label>
+                        <label>Account Status</label>
                         <div className="value">
-                            <span className={`status-badge ${userData?.isActive ? 'pass' : 'fail'}`}>
-                                {userData?.isActive ? 'Active' : 'Inactive'}
+                            <span className={`status-pill ${userData?.isActive !== false ? 'active' : 'inactive'}`}>
+                                {userData?.isActive !== false ? '● Active' : '● Inactive'}
                             </span>
                         </div>
+                    </div>
+
+                    <div className="detail-item">
+                        <label>Auto-Verification</label>
+                        <div className="value">{userData?.useraction || userData?.staffaction ? 'Enabled' : 'Disabled'}</div>
                     </div>
                 </div>
             </div>
