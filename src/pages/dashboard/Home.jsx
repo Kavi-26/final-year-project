@@ -80,7 +80,8 @@ export default function DashboardHome() {
                     return {
                         id: doc.id,
                         ...docData,
-                        parsedDate: getDate(docData.testDate || docData.createdAt)
+                        parsedDate: getDate(docData.testDate || docData.createdAt),
+                        parsedValidityDate: getDate(docData.validityDate)
                     };
                 });
 
@@ -104,6 +105,8 @@ export default function DashboardHome() {
                     <h1>My Pollution Dashboard</h1>
                     <p>Welcome back, {currentUser?.displayName || currentUser?.email}</p>
                 </header>
+
+                <TestAlerts allTests={allTests} />
 
                 <UserStatsView allTests={allTests} />
                 
@@ -472,6 +475,57 @@ function UserStatsView({ allTests }) {
                 <div className="stat-value" style={{ fontSize: '1.5rem' }}>{stats.latest}</div>
                 <div className="stat-sub">Current compliance</div>
             </div>
+        </div>
+    );
+}
+
+function TestAlerts({ allTests }) {
+    if (!allTests || allTests.length === 0) return null;
+
+    const now = new Date();
+    const oneWeekFromNow = new Date();
+    oneWeekFromNow.setDate(now.getDate() + 7);
+
+    // Get the latest test for each unique vehicle
+    const vehicleMap = {};
+    allTests.forEach(t => {
+        if (!vehicleMap[t.vehicleNumber] || t.parsedValidityDate > vehicleMap[t.vehicleNumber].parsedValidityDate) {
+            vehicleMap[t.vehicleNumber] = t;
+        }
+    });
+
+    const alerts = [];
+    Object.values(vehicleMap).forEach(test => {
+        const expiry = test.parsedValidityDate;
+        if (!expiry || expiry.getTime() === 0) return;
+        
+        if (expiry < now) {
+            alerts.push({
+                type: 'expired',
+                message: `Critical: Test record for ${test.vehicleNumber.toUpperCase()} has expired on ${expiry.toLocaleDateString()}.`,
+                testId: test.id
+            });
+        } else if (expiry <= oneWeekFromNow) {
+            const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+            alerts.push({
+                type: 'warning',
+                message: `Update Needed: Test record for ${test.vehicleNumber.toUpperCase()} expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`,
+                testId: test.id
+            });
+        }
+    });
+
+    if (alerts.length === 0) return null;
+
+    return (
+        <div className="alerts-container">
+            {alerts.map((alert, idx) => (
+                <div key={idx} className={`alert-banner ${alert.type}`}>
+                    <span className="alert-icon">{alert.type === 'expired' ? '🚫' : '⚠️'}</span>
+                    <p className="alert-message">{alert.message}</p>
+                    <Link to="/dashboard/reports" className="alert-link">Book Test</Link>
+                </div>
+            ))}
         </div>
     );
 }

@@ -1,0 +1,27 @@
+{
+  "status": "success",
+  "result": [
+    {
+      "projectId": "astral-shop-46542",
+      "projectNumber": "164343664457",
+      "displayName": "Astral-shop",
+      "name": "projects/astral-shop-46542",
+      "resources": {
+        "hostingSite": "astral-shop-46542"
+      },
+      "state": "ACTIVE",
+      "etag": "1_be5ab634-1c24-4642-a683-fb4cc304e450"
+    },
+    {
+      "projectId": "hart-mart-c4eb9",
+      "projectNumber": "836240184478",
+      "displayName": "Hart Mart",
+      "name": "projects/hart-mart-c4eb9",
+      "resources": {
+        "hostingSite": "hart-mart-c4eb9"
+      },
+      "state": "ACTIVE",
+      "etag": "1_3c842950-ffee-438a-9b08-05ba8829343d"
+    }
+  ]
+}

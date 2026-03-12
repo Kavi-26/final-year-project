@@ -29,18 +29,22 @@ export default function DashboardLayout() {
                         Dashboard
                     </Link>
                     {(userRole === 'admin' || userRole === 'staff') && (
-                        <>
-                            <Link to="/dashboard/new-test" className={`nav-item ${isActive('/dashboard/new-test')}`}>
-                                New Test
-                            </Link>
-                            <Link to="/dashboard/reports" className={`nav-item ${isActive('/dashboard/reports')}`}>
-                                Reports
-                            </Link>
-                            <Link to="/dashboard/users" className={`nav-item ${isActive('/dashboard/users')}`}>
-                                User Management
-                            </Link>
-                        </>
+                        <Link to="/dashboard/new-test" className={`nav-item ${isActive('/dashboard/new-test')}`}>
+                            New Test
+                        </Link>
                     )}
+                    <Link to="/dashboard/reports" className={`nav-item ${isActive('/dashboard/reports')}`}>
+                        Reports
+                    </Link>
+                    {(userRole === 'admin' || userRole === 'staff') && (
+                        <Link to="/dashboard/users" className={`nav-item ${isActive('/dashboard/users')}`}>
+                            User Management
+                        </Link>
+                    )}
+                    <Link to="/dashboard/notifications" className={`nav-item ${isActive('/dashboard/notifications')}`}>
+                        Notifications
+                        <span className="nav-badge">New</span>
+                    </Link>
                     {userRole === 'admin' && (
                         <Link to="/dashboard/staff" className={`nav-item ${isActive('/dashboard/staff')}`}>
                             Staff Management

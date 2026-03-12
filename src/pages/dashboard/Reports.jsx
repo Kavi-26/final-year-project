@@ -51,9 +51,9 @@ export default function Reports() {
                     const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
                     if (userSnap.exists()) {
                         const uData = userSnap.data();
+                        const userVehicle = uData.vehicleNumber?.toUpperCase();
                         data = data.filter(t => 
-                            t.ownerName?.toLowerCase() === uData.name?.toLowerCase() ||
-                            t.vehicleNumber?.toUpperCase() === uData.vehicleNumber?.toUpperCase()
+                            t.vehicleNumber?.toUpperCase() === userVehicle
                         );
                     } else {
                         data = []; // No profile, no data

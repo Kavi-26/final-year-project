@@ -190,3 +190,61 @@
 }
 
 /* Table styles are now in DashboardLayout.css */
+
+/* Alerts Section */
+.alerts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-banner {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    gap: 1rem;
+}
+
+.alert-banner.expired {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.alert-banner.warning {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    color: #92400e;
+}
+
+.alert-icon {
+    font-size: 1.2rem;
+}
+
+.alert-message {
+    flex: 1;
+    font-weight: 600;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.alert-link {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 700;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.alert-link:hover {
+    opacity: 0.8;
+}
