@@ -41,10 +41,12 @@ export default function DashboardLayout() {
                             User Management
                         </Link>
                     )}
-                    <Link to="/dashboard/notifications" className={`nav-item ${isActive('/dashboard/notifications')}`}>
-                        Notifications
-                        <span className="nav-badge">New</span>
-                    </Link>
+                    {userRole === 'user' && (
+                        <Link to="/dashboard/notifications" className={`nav-item ${isActive('/dashboard/notifications')}`}>
+                            Notifications
+                            <span className="nav-badge">New</span>
+                        </Link>
+                    )}
                     {userRole === 'admin' && (
                         <Link to="/dashboard/staff" className={`nav-item ${isActive('/dashboard/staff')}`}>
                             Staff Management

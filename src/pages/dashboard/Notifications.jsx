@@ -10,6 +10,17 @@ export default function Notifications() {
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    if (userRole !== 'user') {
+        return (
+            <div className="reports-container">
+                <div className="reports-header">
+                    <h1>Access Denied</h1>
+                    <p className="subtitle">Notifications are only available for regular users.</p>
+                </div>
+            </div>
+        );
+    }
+
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
@@ -116,17 +127,17 @@ export default function Notifications() {
                     </div>
                 ) : (
                     messages.map(msg => (
-                        <div key={msg.id} className={`glass-card notification-item ${msg.type}`} style={{ 
-                            padding: '1.5rem', 
-                            background: 'white', 
+                        <div key={msg.id} className={`glass-card notification-item ${msg.type}`} style={{
+                            padding: '1.5rem',
+                            background: 'white',
                             borderLeft: `5px solid ${msg.type === 'critical' ? '#ef4444' : '#f59e0b'}`,
                             display: 'flex',
                             gap: '1.5rem',
                             alignItems: 'flex-start',
                             animation: 'slideIn 0.4s ease-out'
                         }}>
-                            <div className="msg-icon" style={{ 
-                                fontSize: '1.5rem', 
+                            <div className="msg-icon" style={{
+                                fontSize: '1.5rem',
                                 background: msg.type === 'critical' ? '#fee2e2' : '#fff9db',
                                 width: '50px',
                                 height: '50px',
