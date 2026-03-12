@@ -91,6 +91,19 @@ export default function Profile() {
                         </div>
                     </div>
 
+                    {userRole === 'user' && (
+                        <>
+                            <div className="detail-item">
+                                <label>Vehicle Number</label>
+                                <div className="value uppercase">{userData?.vehicleNumber || 'Not Set'}</div>
+                            </div>
+                            <div className="detail-item">
+                                <label>Mobile Number</label>
+                                <div className="value">{userData?.mobileNumber || 'Not Set'}</div>
+                            </div>
+                        </>
+                    )}
+
                     <div className="detail-item">
                         <label>User ID</label>
                         <div className="value code">{currentUser?.uid}</div>

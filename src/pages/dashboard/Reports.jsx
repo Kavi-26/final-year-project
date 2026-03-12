@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, query } from 'firebase/firestore';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import './Reports.css';
 
 export default function Reports() {
@@ -19,7 +21,6 @@ export default function Reports() {
     useEffect(() => {
         const fetchReports = async () => {
             try {
-                // Fetch from correct collection
                 const q = query(collection(db, "pollution_tests"));
                 const snapshot = await getDocs(q);
 
@@ -39,9 +40,7 @@ export default function Reports() {
                     };
                 });
 
-                // Sort by date descending
                 data.sort((a, b) => b.date - a.date);
-
                 setTests(data);
                 setFiltered(data);
             } catch (err) {
@@ -65,7 +64,6 @@ export default function Reports() {
             res = res.filter(t => t.fuelType === filters.fuelType);
         }
         if (filters.startDate) {
-            // Compare removing time
             const startStr = filters.startDate;
             res = res.filter(t => {
                 const d = t.date.toISOString().split('T')[0];
@@ -106,83 +104,87 @@ export default function Reports() {
         }
     };
 
-    const handleDownload = () => {
+    const handleDownloadCSV = () => {
         if (filtered.length === 0) {
             alert("No data to download");
             return;
         }
 
-        // 1. Collect all unique keys
-        const allKeys = new Set();
-        filtered.forEach(item => {
-            Object.keys(item).forEach(key => allKeys.add(key));
-        });
-
-        // 2. Define Headers (Prioritize important ones)
-        let headers = Array.from(allKeys);
-        headers.sort();
-        const priorityFields = [
-            'id', 'date', 'testDate', 'expiryDate', 'validityDate',
-            'vehicleNumber', 'ownerName', 'mobileNumber',
-            'testResult', 'vehicleType', 'fuelType'
+        const headers = [
+            'Test Date', 'Certificate ID', 'Vehicle Number', 'Owner Name', 
+            'Vehicle Type', 'Fuel Type', 'CO Level (%)', 'HC Level (ppm)', 
+            'Result', 'Validity Date'
         ];
 
-        headers = [
-            ...priorityFields.filter(field => headers.includes(field)),
-            ...headers.filter(field => !priorityFields.includes(field))
-        ];
+        const csvRows = [headers.join(",")];
 
-        // 3. Helper: Format Dates to YYYY-MM-DD (Excel friendly)
-        const formatDate = (dateVal) => {
-            if (!dateVal) return '';
-            const d = new Date(dateVal);
-            if (isNaN(d.getTime())) return '';
-            return d.toISOString().split('T')[0]; // YYYY-MM-DD
-        };
-
-        // 4. Helper: Escape CSV values
-        const processValue = (key, value) => {
-            if (value === null || value === undefined) return '';
-
-            // Handle Dates
-            if (value instanceof Date || (typeof value === 'object' && value.seconds)) {
-                const dateObj = value.seconds ? new Date(value.seconds * 1000) : value;
-                return formatDate(dateObj);
-            }
-
-            let strVal = String(value);
-
-            // Handle Mobile Number & Vehicle Number to prevent Scientific Notation or leading zero loss
-            // Excel Hack: ="value" forces text mode
-            if (['mobileNumber', 'vehicleNumber', 'phone'].includes(key)) {
-                return `="${strVal}"`;
-            }
-
-            // Standard CSV escaping
-            if (strVal.includes(',') || strVal.includes('"') || strVal.includes('\n')) {
-                strVal = `"${strVal.replace(/"/g, '""')}"`;
-            }
-
-            return strVal;
-        };
-
-        // 5. Generate CSV Rows
-        const csvRows = [];
-        csvRows.push(headers.join(",")); // Header row
-
-        filtered.forEach(row => {
-            const values = headers.map(header => processValue(header, row[header]));
-            csvRows.push(values.join(","));
+        filtered.forEach(t => {
+            const row = [
+                t.date.toLocaleDateString(),
+                t.id,
+                t.vehicleNumber.toUpperCase(),
+                t.ownerName,
+                t.vehicleType,
+                t.fuelType,
+                t.coLevel || '0',
+                t.hcLevel || '0',
+                t.testResult,
+                t.validityDate ? new Date(t.validityDate).toLocaleDateString() : 'N/A'
+            ].map(val => {
+                const str = String(val);
+                // Simple escaping: if includes comma, wrap in quotes
+                if (str.includes(',')) return `"${str.replace(/"/g, '""')}"`;
+                return str;
+            });
+            csvRows.push(row.join(","));
         });
 
-        // 6. Download
-        const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join("\n"));
+        const blob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.setAttribute("href", csvContent);
-        link.setAttribute("download", `pollution_reports_${new Date().toISOString().split('T')[0]}.csv`);
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Pollution_Reports_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleDownloadPDF = () => {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text("Pollution Test Reports", 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+        doc.text(`Total Records: ${filtered.length}`, 14, 36);
+
+        const tableColumn = ["Date", "Vehicle No", "Type", "Owner", "Status", "CO (%)"];
+        const tableRows = [];
+
+        filtered.forEach(t => {
+            const rowData = [
+                t.date.toLocaleDateString(),
+                t.vehicleNumber.toUpperCase(),
+                t.vehicleType,
+                t.ownerName,
+                t.testResult,
+                t.coLevel || '0'
+            ];
+            tableRows.push(rowData);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 45,
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246] },
+            alternateRowStyles: { fillColor: [248, 250, 252] }
+        });
+
+        doc.save(`Pollution_Reports_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
     return (
@@ -190,42 +192,31 @@ export default function Reports() {
             <div className="reports-header">
                 <div className="header-left">
                     <h1>Test Reports</h1>
-                    <p className="subtitle">View and download vehicle test records</p>
+                    <p className="subtitle">Analyze and manage emission test records</p>
                 </div>
                 <div className="download-actions">
-                    <button className="btn-download" onClick={handleDownload}>
-                        ⬇ Download CSV
+                    <button className="btn-download csv" onClick={handleDownloadCSV}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                        CSV
+                    </button>
+                    <button className="btn-download pdf" onClick={handleDownloadPDF}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        PDF
                     </button>
                 </div>
             </div>
 
             <div className="filters-card">
-                {/* Time Period Quick Filters */}
                 <div className="period-tabs">
-                    <button
-                        className={`period-tab ${activePeriod === 'all' ? 'active' : ''}`}
-                        onClick={() => handlePeriodChange('all')}
-                    >
-                        All Time
-                    </button>
-                    <button
-                        className={`period-tab ${activePeriod === 'today' ? 'active' : ''}`}
-                        onClick={() => handlePeriodChange('today')}
-                    >
-                        Today
-                    </button>
-                    <button
-                        className={`period-tab ${activePeriod === 'month' ? 'active' : ''}`}
-                        onClick={() => handlePeriodChange('month')}
-                    >
-                        This Month
-                    </button>
-                    <button
-                        className={`period-tab ${activePeriod === 'year' ? 'active' : ''}`}
-                        onClick={() => handlePeriodChange('year')}
-                    >
-                        This Year
-                    </button>
+                    {['all', 'today', 'month', 'year'].map(p => (
+                        <button
+                            key={p}
+                            className={`period-tab ${activePeriod === p ? 'active' : ''}`}
+                            onClick={() => handlePeriodChange(p)}
+                        >
+                            {p === 'all' ? 'All Time' : p === 'month' ? 'This Month' : p === 'year' ? 'This Year' : 'Today'}
+                        </button>
+                    ))}
                 </div>
 
                 <div className="filters-grid">
@@ -253,7 +244,6 @@ export default function Reports() {
                             <option value="car">Car</option>
                             <option value="auto">Auto</option>
                             <option value="truck">Truck</option>
-                            <option value="bus">Bus</option>
                         </select>
                     </div>
                     <div className="filter-group">
@@ -267,11 +257,10 @@ export default function Reports() {
                             <option value="petrol">Petrol</option>
                             <option value="diesel">Diesel</option>
                             <option value="cng">CNG</option>
-                            <option value="electric">Electric</option>
                         </select>
                     </div>
                     <div className="filter-group">
-                        <label>Start Date</label>
+                        <label>From Date</label>
                         <input
                             type="date"
                             className="filter-input"
@@ -283,7 +272,7 @@ export default function Reports() {
                         />
                     </div>
                     <div className="filter-group">
-                        <label>End Date</label>
+                        <label>To Date</label>
                         <input
                             type="date"
                             className="filter-input"
@@ -299,30 +288,30 @@ export default function Reports() {
 
             <div className="reports-table-container">
                 <div className="table-header-info">
-                    <span>Showing <strong>{filtered.length}</strong> records</span>
+                    <span>Found <strong>{filtered.length}</strong> test records</span>
                 </div>
                 <div className="table-responsive">
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Vehicle</th>
+                                <th>Test Date</th>
+                                <th>Vehicle No</th>
                                 <th>Type</th>
                                 <th>Owner</th>
                                 <th>Status</th>
-                                <th>Link</th>
+                                <th className="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="6" className="text-center" style={{ padding: '2rem' }}>Loading reports...</td></tr>
+                                <tr><td colSpan="6" className="table-loader">Loading records...</td></tr>
                             ) : filtered.length === 0 ? (
-                                <tr><td colSpan="6" className="text-center" style={{ padding: '2rem' }}>No matching records found.</td></tr>
+                                <tr><td colSpan="6" className="table-empty">No records found for the selected filters.</td></tr>
                             ) : (
                                 filtered.map(t => (
-                                    <tr key={t.id}>
-                                        <td>{t.date.toLocaleDateString()}</td>
-                                        <td className="uppercase">{t.vehicleNumber}</td>
+                                    <tr key={t.id} className="table-row-hover">
+                                        <td className="font-medium">{t.date.toLocaleDateString()}</td>
+                                        <td className="uppercase font-bold text-primary">{t.vehicleNumber}</td>
                                         <td className="capitalize">{t.vehicleType}</td>
                                         <td>{t.ownerName}</td>
                                         <td>
@@ -330,8 +319,8 @@ export default function Reports() {
                                                 {t.testResult}
                                             </span>
                                         </td>
-                                        <td>
-                                            <a href={`/certificate/${t.id}`} className="btn-link" target="_blank" rel="noreferrer">
+                                        <td className="text-right">
+                                            <a href={`/certificate/${t.id}`} className="btn-view-cert" target="_blank" rel="noreferrer">
                                                 View Cert
                                             </a>
                                         </td>

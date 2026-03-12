@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
-import './Staff.css'; // Reusing Staff styles for consistency
+import './Reports.css'; // Reusing Reports styles for premium look
 
 export default function Users() {
     const { userRole, createUserByAdmin } = useAuth();
     const [dataList, setDataList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({ name: '', email: '', password: '', vehicleNumber: '', mobileNumber: '' });
+    const [editingId, setEditingId] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
     const [error, setError] = useState('');
 
@@ -45,16 +45,46 @@ export default function Users() {
 
         setError('');
         try {
-            await createUserByAdmin(formData.email, formData.password, formData.name, formData.vehicleNumber, formData.mobileNumber);
-            alert("User account created successfully!");
+            if (editingId) {
+                // Update existing
+                const userRef = doc(db, 'users', editingId);
+                await updateDoc(userRef, {
+                    name: formData.name,
+                    vehicleNumber: formData.vehicleNumber,
+                    mobileNumber: formData.mobileNumber
+                });
+                alert("User updated successfully!");
+            } else {
+                // Create new
+                await createUserByAdmin(formData.email, formData.password, formData.name, formData.vehicleNumber, formData.mobileNumber);
+                alert("User account created successfully!");
+            }
 
-            setFormData({ name: '', email: '', password: '', vehicleNumber: '', mobileNumber: '' });
-            setIsAdding(false);
-            fetchData(); // Refresh list
+            resetForm();
+            fetchData();
         } catch (err) {
             console.error(err);
-            setError(err.message || "Error creating account");
+            setError(err.message || "Error processing request");
         }
+    };
+
+    const handleEdit = (user) => {
+        setFormData({
+            name: user.name || '',
+            email: user.email,
+            password: '••••••••', // Placeholder
+            vehicleNumber: user.vehicleNumber || '',
+            mobileNumber: user.mobileNumber || ''
+        });
+        setEditingId(user.id);
+        setIsAdding(true);
+    };
+
+    const resetForm = () => {
+        setFormData({ name: '', email: '', password: '', vehicleNumber: '', mobileNumber: '' });
+        setEditingId(null);
+        setIsAdding(false);
+        setError('');
     };
 
     const handleDelete = async (id) => {
@@ -73,93 +103,105 @@ export default function Users() {
     }
 
     return (
-        <div className="dashboard-container">
-            <div className="dashboard-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h2 className="dashboard-title">User Management</h2>
-                    <p style={{ color: '#64748b' }}>Manage registered users and their details.</p>
+        <div className="dashboard-container reports-container">
+            <header className="reports-header" style={{ marginBottom: '2rem' }}>
+                <div className="header-info">
+                    <h1>User Management</h1>
+                    <p>Manage and monitor customer accounts and their registered vehicles.</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => setIsAdding(!isAdding)}>
-                    {isAdding ? 'Cancel' : '+ Add New User'}
-                </button>
-            </div>
+                <div className="header-actions">
+                    <button className="btn-download csv" onClick={() => setIsAdding(!isAdding)}>
+                        {isAdding ? 'Close Form' : '+ Add New User'}
+                    </button>
+                </div>
+            </header>
 
             {isAdding && (
-                <div className="filters-card" style={{ maxWidth: '800px', margin: '0 auto 2rem auto', background: 'white', padding: '2rem', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <h3 className="form-title" style={{ marginBottom: '1.5rem', fontSize: '1.2rem', fontWeight: '700' }}>Create New User Account</h3>
+                <div className="filters-card fade-in" style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>
+                            {editingId ? 'Edit User Details' : 'Create New User Account'}
+                        </h2>
+                        <button className="btn-link" onClick={resetForm}>Clear</button>
+                    </div>
 
-                    {error && <div className="error-message">{error}</div>}
+                    {error && <div className="error-message" style={{ color: '#ef4444', marginBottom: '1rem', background: '#fef2f2', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>{error}</div>}
 
-                    <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Full Name</label>
-                            <input className="filter-input" style={{ width: '100%' }} name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
+                    <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                        <div className="filter-group">
+                            <label>Full Name</label>
+                            <input className="filter-input" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
                         </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Email Address</label>
-                            <input className="filter-input" style={{ width: '100%' }} name="email" type="email" placeholder="user@example.com" value={formData.email} onChange={handleChange} required />
+                        <div className="filter-group">
+                            <label>Email Address</label>
+                            <input className="filter-input" name="email" type="email" placeholder="user@example.com" value={formData.email} onChange={handleChange} required disabled={editingId} title={editingId ? "Email cannot be changed" : ""} />
                         </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Vehicle Number</label>
-                            <input className="filter-input" style={{ width: '100%', textTransform: 'uppercase' }} name="vehicleNumber" placeholder="TN-01-AB-1234" value={formData.vehicleNumber} onChange={handleChange} required />
+                        <div className="filter-group">
+                            <label>Vehicle Number</label>
+                            <input className="filter-input uppercase" name="vehicleNumber" placeholder="TN-01-AB-1234" value={formData.vehicleNumber} onChange={handleChange} required />
                         </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Mobile Number</label>
-                            <input className="filter-input" style={{ width: '100%' }} name="mobileNumber" placeholder="9876543210" value={formData.mobileNumber} onChange={handleChange} required />
+                        <div className="filter-group">
+                            <label>Mobile Number</label>
+                            <input className="filter-input" name="mobileNumber" placeholder="9876543210" value={formData.mobileNumber} onChange={handleChange} required />
                         </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Password</label>
-                            <input className="filter-input" style={{ width: '100%' }} name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
-                        </div>
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                                Create Account
+                        {!editingId && (
+                            <div className="filter-group">
+                                <label>Password</label>
+                                <input className="filter-input" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+                            </div>
+                        )}
+                        <div className="filter-group" style={{ display: 'flex', alignItems: 'flex-end', gridColumn: editingId ? 'auto' : 'span 1' }}>
+                            <button type="submit" className="btn-download pdf" style={{ width: '100%', height: '42px', padding: 0 }}>
+                                {editingId ? 'Update Account' : 'Register User'}
                             </button>
                         </div>
                     </form>
                 </div>
             )}
 
-            {loading ? <div style={{ textAlign: 'center', padding: '2rem' }}>Loading users...</div> : (
-                <div className="table-container" style={{ background: 'white', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead style={{ background: '#f8fafc' }}>
+            <div className="section-card table-section fade-in">
+                <div className="table-responsive">
+                    <table className="data-table">
+                        <thead>
                             <tr>
-                                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Name / Contact</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Vehicle</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Role</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Joined</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Actions</th>
+                                <th>Name / Contact</th>
+                                <th>Vehicle</th>
+                                <th className="text-center">Role</th>
+                                <th>Joined</th>
+                                <th className="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {dataList.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No records found</td></tr>
+                            {loading ? (
+                                <tr><td colSpan="5" className="text-center">Loading users...</td></tr>
+                            ) : dataList.length === 0 ? (
+                                <tr><td colSpan="5" className="text-center">No users found.</td></tr>
                             ) : dataList.map(item => (
-                                <tr key={item.id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: '600', color: '#1e293b' }}>{item.name || 'N/A'}</div>
+                                <tr key={item.id}>
+                                    <td>
+                                        <div style={{ fontWeight: '700', color: '#1e293b' }}>{item.name || 'N/A'}</div>
                                         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{item.email}</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.mobileNumber}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{item.mobileNumber}</div>
                                     </td>
-                                    <td style={{ padding: '1rem', textTransform: 'uppercase', fontWeight: '500' }}>{item.vehicleNumber || '-'}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span className="badge badge-user" style={{ background: '#ebfdf5', color: '#059669', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: '600' }}>
+                                    <td className="uppercase font-mono">{item.vehicleNumber || '-'}</td>
+                                    <td className="text-center">
+                                        <span className="status-badge pass" style={{ padding: '0.2rem 0.8rem' }}>
                                             {item.role || 'user'}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '1rem', color: '#64748b' }}>
-                                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <button onClick={() => handleDelete(item.id)} className="btn-delete" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>Remove</button>
+                                    <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}</td>
+                                    <td className="text-right">
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            <button onClick={() => handleEdit(item)} className="btn-link" style={{ fontSize: '0.9rem' }}>Edit</button>
+                                            <button onClick={() => handleDelete(item.id)} className="btn-link" style={{ color: '#ef4444', fontSize: '0.9rem' }}>Delete</button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

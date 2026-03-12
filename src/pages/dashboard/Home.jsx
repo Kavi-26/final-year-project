@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Link } from 'react-router-dom';
 import VehicleList from './VehicleList';
 import './Home.css';
 import './Reports.css';
@@ -31,15 +32,31 @@ export default function DashboardHome() {
     const [recentTests, setRecentTests] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // If regular user, show only their vehicle list
+    // If regular user, show personalized dashboard
     if (userRole === 'user') {
         return (
             <div className="dashboard-home">
                 <header className="page-header">
-                    <h1>User Dashboard</h1>
+                    <h1>My Pollution Dashboard</h1>
                     <p>Welcome back, {currentUser?.displayName || currentUser?.email}</p>
                 </header>
-                <VehicleList />
+
+                <UserStatsView currentUser={currentUser} allTests={allTests} />
+                
+                <div className="dashboard-sections-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem', marginTop: '2rem' }}>
+                    <div className="section-card">
+                        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Recent Test Records</h2>
+                            <Link to="/dashboard/reports" className="btn-link">View All</Link>
+                        </div>
+                        <UserRecentTests currentUser={currentUser} allTests={allTests} />
+                    </div>
+                    
+                    <div className="section-card">
+                        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>My Registered Vehicles</h2>
+                        <VehicleList />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -48,8 +65,13 @@ export default function DashboardHome() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const testsRef = collection(db, 'pollution_tests');
-                const snapshot = await getDocs(testsRef);
+                let testsRef = collection(db, 'pollution_tests');
+                let snapshot;
+
+                // Optimization: If user, only fetch their tests by mobile or email if possible
+                // For now, fetching all and filtering in memory is fine for small scale, 
+                // but let's try to be smart if user doc has name
+                snapshot = await getDocs(testsRef);
 
                 const getDate = (dateField) => {
                     if (!dateField) return new Date(0);
@@ -372,6 +394,111 @@ export default function DashboardHome() {
                     </table>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function UserStatsView({ currentUser, allTests }) {
+    const [userTests, setUserTests] = useState([]);
+
+    useEffect(() => {
+        const filterMyTests = async () => {
+            const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userSnap.exists()) {
+                const uData = userSnap.data();
+                const myDocs = allTests.filter(t => 
+                    t.ownerName?.toLowerCase() === uData.name?.toLowerCase() ||
+                    t.vehicleNumber?.toUpperCase() === uData.vehicleNumber?.toUpperCase()
+                );
+                setUserTests(myDocs);
+            }
+        };
+        filterMyTests();
+    }, [allTests, currentUser]);
+
+    const stats = {
+        total: userTests.length,
+        pass: userTests.filter(t => t.testResult === 'Pass').length,
+        fail: userTests.filter(t => t.testResult === 'Fail').length,
+        latest: userTests[0]?.testResult || 'N/A'
+    };
+
+    return (
+        <div className="stats-grid">
+            <div className="stat-card">
+                <h3>Total Reports</h3>
+                <div className="stat-value">{stats.total}</div>
+                <div className="stat-sub">Lifetime test records</div>
+            </div>
+            <div className="stat-card success">
+                <h3>Cleared</h3>
+                <div className="stat-value">{stats.pass}</div>
+                <div className="stat-sub">Passed inspections</div>
+            </div>
+            <div className="stat-card danger">
+                <h3>Failed</h3>
+                <div className="stat-value">{stats.fail}</div>
+                <div className="stat-sub">Rejected inspections</div>
+            </div>
+            <div className="stat-card info">
+                <h3>Latest Status</h3>
+                <div className="stat-value" style={{ fontSize: '1.5rem' }}>{stats.latest}</div>
+                <div className="stat-sub">Current compliance</div>
+            </div>
+        </div>
+    );
+}
+
+function UserRecentTests({ currentUser, allTests }) {
+    const [myRecent, setMyRecent] = useState([]);
+
+    useEffect(() => {
+        const filterMyRecent = async () => {
+            const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userSnap.exists()) {
+                const uData = userSnap.data();
+                const filtered = allTests.filter(t => 
+                    t.ownerName?.toLowerCase() === uData.name?.toLowerCase() ||
+                    t.vehicleNumber?.toUpperCase() === uData.vehicleNumber?.toUpperCase()
+                ).slice(0, 5);
+                setMyRecent(filtered);
+            }
+        };
+        filterMyRecent();
+    }, [allTests, currentUser]);
+
+    return (
+        <div className="table-responsive">
+            <table className="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vehicle</th>
+                        <th>Result</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {myRecent.length === 0 ? (
+                        <tr><td colSpan="4" className="text-center">No reports found linked to your profile.</td></tr>
+                    ) : (
+                        myRecent.map(test => (
+                            <tr key={test.id}>
+                                <td>{test.parsedDate?.toLocaleDateString()}</td>
+                                <td className="uppercase">{test.vehicleNumber}</td>
+                                <td>
+                                    <span className={`status-badge ${test.testResult?.toLowerCase()}`}>
+                                        {test.testResult}
+                                    </span>
+                                </td>
+                                <td>
+                                    <Link to={`/certificate/${test.id}`} className="btn-link">View</Link>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </table>
         </div>
     );
 }
