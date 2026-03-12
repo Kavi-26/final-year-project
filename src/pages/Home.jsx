@@ -41,7 +41,7 @@ export default function Home() {
                     <div className="feature-card glass-card">
                         <div className="icon">🛡️</div>
                         <h3>Secure & Valid</h3>
-                        <p>Tamper-proof digital certificates directly linked to the national transport database.</p>
+                        <p>Secure digital test records directly linked to our authorized center database.</p>
                     </div>
                     <div className="feature-card glass-card">
                         <div className="icon">🌱</div>

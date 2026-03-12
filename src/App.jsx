@@ -16,7 +16,6 @@ import Contact from './pages/Contact';
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Certificate from './pages/Certificate';
 import Profile from './pages/dashboard/Profile';
 
 function App() {
@@ -30,7 +29,6 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/verify" element={<Verification />} />
-            <Route path="/certificate/:id" element={<Certificate />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
           </Route>

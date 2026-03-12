@@ -25,7 +25,7 @@ export default function About() {
 
                     <h2 style={{ fontSize: '1.5rem', marginTop: '2.5rem', marginBottom: '1rem', color: '#1e293b' }}>Why Choose Us?</h2>
                     <ul style={{ listStyle: 'none', paddingLeft: '0', display: 'grid', gap: '1rem' }}>
-                        {['Government Authorized & RTO Compliant', 'Advanced Gas Analysers & Smoke Meters', 'Quick Service (Under 10 Minutes)', 'Instant Digital Certificates', 'SMS Reminders for Expiry'].map((item, idx) => (
+                        {['Government Authorized & RTO Compliant', 'Advanced Gas Analysers & Smoke Meters', 'Quick Service (Under 10 Minutes)', 'Instant Digital Reports', 'SMS Reminders for Expiry'].map((item, idx) => (
                             <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
                                 <span style={{ color: 'var(--secondary-color)' }}>✔</span> {item}
                             </li>

@@ -36,7 +36,7 @@ export default function Contact() {
                     <div className="glass-card" style={{ padding: '2.5rem', height: '100%' }}>
                         <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Get in Touch</h2>
                         <p style={{ marginBottom: '2rem', color: '#64748b' }}>
-                            Have questions about your certificate or need to book a fleet test?
+                            Have questions about your test record or need to book a fleet test?
                         </p>
 
                         <div style={{ marginBottom: '1.5rem' }}>

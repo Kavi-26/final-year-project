@@ -358,12 +358,11 @@ export default function DashboardHome() {
                                 <th>Owner</th>
                                 <th>Type</th>
                                 <th>Result</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {recentTests.length === 0 ? (
-                                <tr><td colSpan="6" className="text-center">No tests recorded in this period.</td></tr>
+                                <tr><td colSpan="5" className="text-center">No tests recorded in this period.</td></tr>
                             ) : (
                                 recentTests.map(test => (
                                     <tr key={test.id}>
@@ -375,9 +374,6 @@ export default function DashboardHome() {
                                             <span className={`status-badge ${test.testResult?.toLowerCase()}`}>
                                                 {test.testResult}
                                             </span>
-                                        </td>
-                                        <td>
-                                            <a href={`/certificate/${test.id}`} className="btn-link">View</a>
                                         </td>
                                     </tr>
                                 ))
@@ -467,12 +463,11 @@ function UserRecentTests({ currentUser, allTests }) {
                         <th>Date</th>
                         <th>Vehicle</th>
                         <th>Result</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {myRecent.length === 0 ? (
-                        <tr><td colSpan="4" className="text-center">No reports found linked to your profile.</td></tr>
+                        <tr><td colSpan="3" className="text-center">No reports found linked to your profile.</td></tr>
                     ) : (
                         myRecent.map(test => (
                             <tr key={test.id}>
@@ -482,9 +477,6 @@ function UserRecentTests({ currentUser, allTests }) {
                                     <span className={`status-badge ${test.testResult?.toLowerCase()}`}>
                                         {test.testResult}
                                     </span>
-                                </td>
-                                <td>
-                                    <Link to={`/certificate/${test.id}`} className="btn-link">View</Link>
                                 </td>
                             </tr>
                         ))

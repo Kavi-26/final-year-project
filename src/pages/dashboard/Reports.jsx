@@ -19,6 +19,7 @@ export default function Reports() {
         fuelType: 'all'
     });
     const [activePeriod, setActivePeriod] = useState('all');
+    const [selectedTest, setSelectedTest] = useState(null);
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -130,7 +131,7 @@ export default function Reports() {
         }
 
         const headers = [
-            'Test Date', 'Certificate ID', 'Vehicle Number', 'Owner Name', 
+            'Test Date', 'Record ID', 'Vehicle Number', 'Owner Name', 
             'Vehicle Type', 'Fuel Type', 'CO Level (%)', 'HC Level (ppm)', 
             'Result', 'Validity Date'
         ];
@@ -339,9 +340,9 @@ export default function Reports() {
                                             </span>
                                         </td>
                                         <td className="text-right">
-                                            <a href={`/certificate/${t.id}`} className="btn-view-cert" target="_blank" rel="noreferrer">
-                                                View Cert
-                                            </a>
+                                            <button className="btn-view-cert" onClick={() => setSelectedTest(t)}>
+                                                Details
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -350,6 +351,85 @@ export default function Reports() {
                     </table>
                 </div>
             </div>
+
+            {selectedTest && (
+                <div className="modal-overlay" onClick={() => setSelectedTest(null)}>
+                    <div className="modal-content glass-card animate-slide-up" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Test Details</h2>
+                            <button className="close-btn" onClick={() => setSelectedTest(null)}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="details-grid">
+                                <div className="detail-item full">
+                                    <label>Vehicle Number</label>
+                                    <span className="value uppercase highlight">{selectedTest.vehicleNumber}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Test Date</label>
+                                    <span className="value">{selectedTest.date.toLocaleDateString()}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Validity Upto</label>
+                                    <span className="value">{selectedTest.validityDate ? new Date(selectedTest.validityDate).toLocaleDateString() : 'N/A'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Owner Name</label>
+                                    <span className="value">{selectedTest.ownerName}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Mobile</label>
+                                    <span className="value">{selectedTest.mobileNumber}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Vehicle Type</label>
+                                    <span className="value capitalize">{selectedTest.vehicleType}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Fuel Type</label>
+                                    <span className="value capitalize">{selectedTest.fuelType}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Emission Norms</label>
+                                    <span className="value">{selectedTest.emissionNorms || 'N/A'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Status</label>
+                                    <span className={`status-badge ${selectedTest.testResult?.toLowerCase()}`}>{selectedTest.testResult}</span>
+                                </div>
+                            </div>
+
+                            <h3 className="section-title">Test Readings</h3>
+                            <div className="readings-grid">
+                                <div className="reading-item">
+                                    <label>Idling CO (%)</label>
+                                    <span className="value">{selectedTest.coLevel || '0'}</span>
+                                </div>
+                                <div className="reading-item">
+                                    <label>Idling HC (ppm)</label>
+                                    <span className="value">{selectedTest.hcLevel || '0'}</span>
+                                </div>
+                                <div className="reading-item">
+                                    <label>High Idling CO (%)</label>
+                                    <span className="value">{selectedTest.highIdlingCO || '0'}</span>
+                                </div>
+                                <div className="reading-item">
+                                    <label>High Idling RPM</label>
+                                    <span className="value">{selectedTest.highIdlingRPM || '0'}</span>
+                                </div>
+                                <div className="reading-item">
+                                    <label>Lambda</label>
+                                    <span className="value">{selectedTest.lambda || '0'}</span>
+                                </div>
+                                <div className="reading-item">
+                                    <label>Smoke Density (1/m)</label>
+                                    <span className="value">{selectedTest.smokeDensity || '0'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

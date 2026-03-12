@@ -12,7 +12,7 @@ const logSession = async (uid, action) => {
     try {
         await addDoc(collection(db, "activity_logs"), {
             uid,
-            action, // 'login', 'logout', 'upload_cert', etc.
+            action, // 'login', 'logout', 'upload_test', etc.
             timestamp: serverTimestamp(),
             userAgent: navigator.userAgent
         });

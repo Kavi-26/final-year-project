@@ -310,7 +310,7 @@ export default function NewTest() {
             {/* Auto-fill Section */}
             <div className="ocr-upload-section" style={{ marginBottom: '2rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '8px', border: '1px dashed #ced4da' }}>
                 <h3>Auto-fill Details (OCR)</h3>
-                <p>Upload a photo of the previous certificate or RC book.</p>
+                <p>Upload a photo of the previous test report or RC book.</p>
                 <input
                     type="file"
                     accept="image/*"
@@ -377,9 +377,9 @@ export default function NewTest() {
                     </div>
                 </section>
 
-                {/* Certificate Details */}
+                {/* Test Validity Details */}
                 <section className="form-section">
-                    <h3>Certificate Validity</h3>
+                    <h3>Test Validity</h3>
                     <div className="grid-2">
                         <div className="form-group">
                             <label>Test Date</label>
@@ -397,7 +397,7 @@ export default function NewTest() {
                                 <option value="12">12 Months (1 Year)</option>
                             </select>
                             <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
-                                Auto-calculated from uploaded certificate
+                                Auto-calculated from uploaded report
                             </small>
                         </div>
                     </div>

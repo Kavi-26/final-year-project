@@ -68,7 +68,7 @@ export default function Verification() {
 
             <div className="page-content-wrapper container verification-container">
                 <div className="search-box glass-card animate-slide-up" style={{ background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(20px)' }}>
-                    <h1 className="text-gradient">Verify Certificate</h1>
+                    <h1 className="text-gradient">Verify Test Status</h1>
                     <p style={{ color: '#64748b' }}>Enter vehicle number to check pollution test status.</p>
 
                     <form onSubmit={handleSearch} className="search-form">
@@ -97,12 +97,7 @@ export default function Verification() {
                                     Status: <strong>{result.isValid ? 'VALID' : 'EXPIRED'}</strong>
                                 </p>
                                 <p>Expires on: {result.expiryDateString}</p>
-                                <button
-                                    className="btn-link"
-                                    onClick={() => navigate(`/certificate/${result.id}`)}
-                                >
-                                    View & Download Certificate &rarr;
-                                </button>
+                                <p>Expires on: {result.expiryDateString}</p>
                             </div>
                         </div>
                     )}
