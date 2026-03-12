@@ -4,7 +4,6 @@ import { db } from '../../firebase';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
-import VehicleList from './VehicleList';
 import './Home.css';
 import './Reports.css';
 
@@ -43,19 +42,12 @@ export default function DashboardHome() {
 
                 <UserStatsView currentUser={currentUser} allTests={allTests} />
                 
-                <div className="dashboard-sections-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem', marginTop: '2rem' }}>
-                    <div className="section-card">
-                        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Recent Test Records</h2>
-                            <Link to="/dashboard/reports" className="btn-link">View All</Link>
-                        </div>
-                        <UserRecentTests currentUser={currentUser} allTests={allTests} />
+                <div className="section-card" style={{ marginTop: '2rem' }}>
+                    <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Recent Test Records</h2>
+                        <Link to="/dashboard/reports" className="btn-link">View All</Link>
                     </div>
-                    
-                    <div className="section-card">
-                        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>My Registered Vehicles</h2>
-                        <VehicleList />
-                    </div>
+                    <UserRecentTests currentUser={currentUser} allTests={allTests} />
                 </div>
             </div>
         );

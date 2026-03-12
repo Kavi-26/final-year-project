@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import './Reports.css';
 
 export default function Reports() {
+    const { currentUser, userRole } = useAuth();
     const [tests, setTests] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,8 +23,12 @@ export default function Reports() {
     useEffect(() => {
         const fetchReports = async () => {
             try {
-                const q = query(collection(db, "pollution_tests"));
-                const snapshot = await getDocs(q);
+                let testsRef = collection(db, "pollution_tests");
+                let snapshot;
+                
+                // If user, we need to filter. Firestore 'or' queries are tricky, 
+                // so we fetch and filter in memory or get user profile first.
+                snapshot = await getDocs(testsRef);
 
                 const getDate = (dateField) => {
                     if (!dateField) return new Date(0);
@@ -30,7 +36,7 @@ export default function Reports() {
                     return new Date(dateField);
                 };
 
-                const data = snapshot.docs.map(doc => {
+                let data = snapshot.docs.map(doc => {
                     const docData = doc.data();
                     const testDate = getDate(docData.testDate || docData.createdAt);
                     return {
@@ -39,6 +45,19 @@ export default function Reports() {
                         date: testDate
                     };
                 });
+
+                if (userRole === 'user') {
+                    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+                    if (userSnap.exists()) {
+                        const uData = userSnap.data();
+                        data = data.filter(t => 
+                            t.ownerName?.toLowerCase() === uData.name?.toLowerCase() ||
+                            t.vehicleNumber?.toUpperCase() === uData.vehicleNumber?.toUpperCase()
+                        );
+                    } else {
+                        data = []; // No profile, no data
+                    }
+                }
 
                 data.sort((a, b) => b.date - a.date);
                 setTests(data);
@@ -50,7 +69,7 @@ export default function Reports() {
             }
         };
         fetchReports();
-    }, []);
+    }, [currentUser, userRole]);
 
     useEffect(() => {
         let res = tests;

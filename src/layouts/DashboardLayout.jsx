@@ -48,11 +48,6 @@ export default function DashboardLayout() {
                             </Link>
                         </>
                     )}
-                    {userRole === 'user' && (
-                        <Link to="/dashboard/vehicles" className={`nav-item ${isActive('/dashboard/vehicles')}`}>
-                            My Vehicles
-                        </Link>
-                    )}
                     <Link to="/dashboard/profile" className={`nav-item ${isActive('/dashboard/profile')}`}>
                         My Profile
                     </Link>
