@@ -41,7 +41,7 @@ export default function Users() {
 
     const handleAdd = async (e) => {
         e.preventDefault();
-        if (userRole !== 'admin') return;
+        if (userRole !== 'admin' && userRole !== 'staff') return;
 
         setError('');
         try {
@@ -98,8 +98,8 @@ export default function Users() {
         }
     };
 
-    if (userRole !== 'admin') {
-        return <div className="p-4">Access Denied: Admins only.</div>;
+    if (userRole !== 'admin' && userRole !== 'staff') {
+        return <div className="p-4">Access Denied: Restricted access.</div>;
     }
 
     return (
@@ -193,7 +193,9 @@ export default function Users() {
                                     <td className="text-right">
                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                             <button onClick={() => handleEdit(item)} className="btn-link" style={{ fontSize: '0.9rem' }}>Edit</button>
-                                            <button onClick={() => handleDelete(item.id)} className="btn-link" style={{ color: '#ef4444', fontSize: '0.9rem' }}>Delete</button>
+                                            {userRole === 'admin' && (
+                                                <button onClick={() => handleDelete(item.id)} className="btn-link" style={{ color: '#ef4444', fontSize: '0.9rem' }}>Delete</button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
